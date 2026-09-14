@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>TorchGolem</AssemblyName>
+    <RootNamespace>TorchGolemMod</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- Override on the command line: dotnet build -p:ValheimDir="D:\Games\Valheim" -->
+    <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+    <BepInExDir>$(ValheimDir)\BepInEx\core</BepInExDir>
+    <!-- Created by tools\setup-dev-profile.ps1. Builds are copied here automatically when it exists. -->
+    <DevProfileDir Condition="'$(DevProfileDir)' == ''">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\TorchGolem Dev</DevProfileDir>
+  </PropertyGroup>
+
+  <Target Name="DeployToDevProfile" AfterTargets="Build" Condition="Exists('$(DevProfileDir)\BepInEx\plugins')">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevProfileDir)\BepInEx\plugins\TorchGolem" ContinueOnError="true" />
+    <Message Importance="high" Text="TorchGolem -> $(DevProfileDir)\BepInEx\plugins\TorchGolem (close Valheim first if the copy fails)" />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="BepInEx"><HintPath>$(BepInExDir)\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(BepInExDir)\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="assembly_valheim"><HintPath>$(ManagedDir)\assembly_valheim.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="assembly_guiutils"><HintPath>$(ManagedDir)\assembly_guiutils.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="assembly_utils"><HintPath>$(ManagedDir)\assembly_utils.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(ManagedDir)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(ManagedDir)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AnimationModule"><HintPath>$(ManagedDir)\UnityEngine.AnimationModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.AIModule"><HintPath>$(ManagedDir)\UnityEngine.AIModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+</Project>
