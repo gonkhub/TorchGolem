@@ -21,6 +21,14 @@ namespace TorchGolemMod
 
         public static List<GameObject> GetScenePrefabs(ZNetScene scene) => s_prefabsRef(scene);
 
+        /// <summary>Re-applies recipe/station/icon settings, e.g. after the server's config arrives.</summary>
+        public static void RefreshPiece()
+        {
+            if (s_prefab == null || ZNetScene.instance == null) return;
+            try { ConfigurePiece(ZNetScene.instance); }
+            catch (Exception e) { Plugin.Log.LogError($"Failed to refresh Torch Golem piece: {e}"); }
+        }
+
         public static void Register(ZNetScene scene)
         {
             try

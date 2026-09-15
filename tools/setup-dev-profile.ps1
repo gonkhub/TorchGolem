@@ -3,8 +3,10 @@
 # and writes mods.yml so the profile shows up normally in r2modman.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\setup-dev-profile.ps1
+#   -PluginsOnly skips reinstalling the BepInEx pack itself, so it's safe to run while Valheim is open.
 param(
-    [string]$ProfileName = "TorchGolem Dev"
+    [string]$ProfileName = "TorchGolem Dev",
+    [switch]$PluginsOnly
 )
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
@@ -16,6 +18,7 @@ $profile = Join-Path $r2 "profiles\$ProfileName"
 # Order matters only for mods.yml readability; dependencies come first.
 $packages = @(
     "denikson/BepInExPack_Valheim",
+    "ValheimModding/Jotunn",
     "JereKuusela/Server_devcommands",
     "JereKuusela/World_Edit_Commands",
     "JereKuusela/Infinity_Hammer",
@@ -49,7 +52,7 @@ function Copy-Into([string]$from, [string]$to) {
 # Mirrors r2modman's BepInEx install rules for Valheim.
 function Install-Package($pkg) {
     if ($pkg.Full -eq "denikson-BepInExPack_Valheim") {
-        Copy-Into (Join-Path $pkg.Dir "BepInExPack_Valheim") $profile
+        if (-not $PluginsOnly) { Copy-Into (Join-Path $pkg.Dir "BepInExPack_Valheim") $profile }
         return
     }
     $bep = Join-Path $profile "BepInEx"

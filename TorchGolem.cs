@@ -18,13 +18,15 @@ namespace TorchGolemMod
         const string ZdoHasHome = "TorchGolem_hasHome";
         const string ZdoResting = "TorchGolem_resting";
         const string ZdoCarryPrefix = "TorchGolem_carry_";
+        const string ZdoCarriedList = "TorchGolem_carried";
         const string RpcToggleRest = "TorchGolem_ToggleRest";
 
-        enum Task { Idle, Refuel, Fetch, Wander }
+        enum Task { Idle, Refuel, Fetch, Deposit, Wander }
 
         static readonly List<Piece> s_pieces = new List<Piece>();
         static readonly List<Fireplace> s_fires = new List<Fireplace>();
         static readonly List<Container> s_chests = new List<Container>();
+        static readonly HashSet<string> s_neededFuel = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         static readonly int s_forwardSpeed = Animator.StringToHash("forward_speed");
         static readonly int s_onGround = Animator.StringToHash("onGround");
         static int s_groundMask;
@@ -171,7 +173,16 @@ namespace TorchGolemMod
                 if (TryStartFetch(fire.m_fuelItem)) return;
             }
 
-            // 3. Nothing urgent: top up low supplies for fuel types in use around the base.
+            // 3. Put back fuel nothing in range burns anymore (torch removed, swapped for another kind...).
+            s_neededFuel.Clear();
+            foreach (var fire in s_fires)
+                s_neededFuel.Add(FuelPrefab(fire));
+            foreach (var carried in GetCarriedItems())
+            {
+                if (!s_neededFuel.Contains(carried) && TryStartDeposit(carried)) return;
+            }
+
+            // 4. Nothing urgent: top up low supplies, but only of fuel types some fire in range actually uses.
             foreach (var fire in s_fires)
             {
                 var item = fire.m_fuelItem;
@@ -179,7 +190,7 @@ namespace TorchGolemMod
                 if (TryStartFetch(item)) return;
             }
 
-            // 4. Potter about.
+            // 5. Potter about.
             if (Plugin.Wander.Value && m_wanderCooldown <= 0f)
             {
                 m_wanderCooldown = Random.Range(5f, 12f);
@@ -226,12 +237,39 @@ namespace TorchGolemMod
             return true;
         }
 
+        bool TryStartDeposit(string prefab)
+        {
+            var drop = FindItemDrop(prefab);
+            if (drop == null || GetCarry(prefab) <= 0) return false;
+            string sharedName = drop.m_itemData.m_shared.m_name;
+
+            // Prefer a chest that already holds this item, so fuel ends up back where it came from.
+            Container best = null;
+            float bestScore = float.MaxValue;
+            foreach (var chest in s_chests)
+            {
+                var inventory = chest.GetInventory();
+                if (!inventory.CanAddItem(drop.gameObject, 1)) continue;
+                float score = Vector3.Distance(transform.position, chest.transform.position);
+                if (inventory.CountItems(sharedName, -1, false) <= 0) score += 1000f;
+                if (score < bestScore) { bestScore = score; best = chest; }
+            }
+            if (best == null) return false;
+
+            m_task = Task.Deposit;
+            m_targetChest = best;
+            m_fetchItem = prefab;
+            StartMove(best.transform.position);
+            return true;
+        }
+
         void Arrive()
         {
             switch (m_task)
             {
                 case Task.Refuel: DoRefuel(m_targetFire); break;
                 case Task.Fetch: DoFetch(m_targetChest); break;
+                case Task.Deposit: DoDeposit(m_targetChest); break;
             }
             ClearTask();
             // Look for the next job almost immediately after finishing one.
@@ -269,6 +307,33 @@ namespace TorchGolemMod
 
             inventory.RemoveItem(sharedName, amount, -1, false);
             AddCarry(m_fetchItem, amount);
+        }
+
+        void DoDeposit(Container chest)
+        {
+            if (chest == null || !CanUseContainer(chest)) return;
+
+            var drop = FindItemDrop(m_fetchItem);
+            if (drop == null) return;
+
+            var chestView = chest.GetComponent<ZNetView>();
+            if (!chestView.IsOwner())
+                chestView.ClaimOwnership();
+
+            var inventory = chest.GetInventory();
+            int maxStack = Mathf.Max(1, drop.m_itemData.m_shared.m_maxStackSize);
+            int remaining = GetCarry(m_fetchItem);
+            while (remaining > 0)
+            {
+                int chunk = Mathf.Min(remaining, maxStack);
+                while (chunk > 1 && !inventory.CanAddItem(drop.gameObject, chunk))
+                    chunk /= 2;
+                if (!inventory.CanAddItem(drop.gameObject, chunk) || !inventory.AddItem(drop.gameObject, chunk))
+                    break;
+                remaining -= chunk;
+            }
+            // Whatever didn't fit stays carried; it'll try another chest on a later scan.
+            AddCarry(m_fetchItem, remaining - GetCarry(m_fetchItem));
         }
 
         // ---------------------------------------------------------------- rules
@@ -327,7 +392,8 @@ namespace TorchGolemMod
             switch (m_task)
             {
                 case Task.Refuel: return m_targetFire != null && IsServiceable(m_targetFire);
-                case Task.Fetch: return m_targetChest != null;
+                case Task.Fetch:
+                case Task.Deposit: return m_targetChest != null;
                 default: return true;
             }
         }
@@ -463,7 +529,26 @@ namespace TorchGolemMod
         void AddCarry(string prefab, int delta)
         {
             var zdo = m_nview.GetZDO();
-            zdo.Set(ZdoCarryPrefix + prefab, Mathf.Max(0, zdo.GetInt(ZdoCarryPrefix + prefab) + delta));
+            int count = Mathf.Max(0, zdo.GetInt(ZdoCarryPrefix + prefab) + delta);
+            zdo.Set(ZdoCarryPrefix + prefab, count);
+
+            var carried = GetCarriedItems();
+            bool changed = count > 0 ? carried.Add(prefab) : carried.Remove(prefab);
+            if (changed)
+                zdo.Set(ZdoCarriedList, string.Join(",", carried));
+        }
+
+        /// <summary>
+        /// Item types currently carried. The ZDO can't enumerate keys, so the names are kept in a list;
+        /// the fuel registry is merged in for golems saved before the list existed.
+        /// </summary>
+        HashSet<string> GetCarriedItems()
+        {
+            var zdo = m_nview.GetZDO();
+            var names = Plugin.ParseList(zdo.GetString(ZdoCarriedList, ""));
+            names.UnionWith(FuelRegistry.Fuel);
+            names.RemoveWhere(n => zdo.GetInt(ZdoCarryPrefix + n) <= 0);
+            return names;
         }
 
         static int GetLimit(ItemDrop item) =>
@@ -487,7 +572,7 @@ namespace TorchGolemMod
             if (m_nview == null || !m_nview.IsValid()) return;
             var zdo = m_nview.GetZDO();
 
-            foreach (var prefab in FuelRegistry.Fuel)
+            foreach (var prefab in GetCarriedItems())
             {
                 int count = zdo.GetInt(ZdoCarryPrefix + prefab);
                 var drop = FindItemDrop(prefab);
@@ -519,7 +604,7 @@ namespace TorchGolemMod
             sb.Append(GetHoverName());
             sb.Append(IsResting() ? " <color=#9aa0a6>(resting)</color>" : " <color=orange>(working)</color>");
 
-            foreach (var prefab in FuelRegistry.Fuel)
+            foreach (var prefab in GetCarriedItems())
             {
                 int count = GetCarry(prefab);
                 if (count <= 0) continue;

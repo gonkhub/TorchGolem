@@ -23,6 +23,11 @@
   </Target>
 
   <ItemGroup>
+    <!-- Version check + server->client config sync. Installed separately by players (ValheimModding-Jotunn on Thunderstore). -->
+    <PackageReference Include="JotunnLib" Version="2.30.0" ExcludeAssets="runtime;build;buildTransitive" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="BepInEx"><HintPath>$(BepInExDir)\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(BepInExDir)\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_valheim"><HintPath>$(ManagedDir)\assembly_valheim.dll</HintPath><Private>false</Private></Reference>

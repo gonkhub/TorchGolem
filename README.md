@@ -15,7 +15,13 @@ A Valheim mod that adds a buildable **Torch Golem**: a little friendly helper th
 
 ## Installation
 
-Requires [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/). Copy `TorchGolem.dll` into `BepInEx/plugins`. In multiplayer, every player needs the mod.
+Requires [BepInExPack_Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/) and [Jötunn](https://thunderstore.io/c/valheim/p/ValheimModding/Jotunn/). Copy `TorchGolem.dll` into `BepInEx/plugins`.
+
+## Multiplayer
+
+Install on the **server and every client**. Jötunn checks this on connect: a client or server missing the mod, or running a different major/minor version, is refused with a message saying why.
+
+All gameplay settings (Behaviour, Fuel, Building) are **server-authoritative**. They're pushed to clients when they join, and only admins can change them in game. The Visual settings stay per-player.
 
 ## Configuration
 
