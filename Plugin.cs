@@ -74,7 +74,7 @@ namespace TorchGolemMod
             GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Ghost", "Vanilla creature used as the golem's body, e.g. Ghost or Wraith. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
             GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Name shown above the golem.");
 
-            Recipe = Config.Bind("Building", "Recipe", "SurtlingCore:2,GreydwarfEye:5,Ectoplasm:1", "Build cost as PrefabName:Amount pairs. The server's value is sent to modded players when they join.");
+            Recipe = Config.Bind("Building", "Recipe", "SurtlingCore:2,BoneFragments:30,Ectoplasm:5", "Build cost as PrefabName:Amount pairs. The server's value is sent to modded players when they join.");
             CraftingStation = Config.Bind("Building", "CraftingStation", "forge", "Crafting station the golem must be built near. Empty = none. The server's value is sent to modded players.");
 
             IconItem = Config.Bind("Client", "IconItem", "Ectoplasm", "Item whose icon is used for the golem in the hammer menu.");

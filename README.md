@@ -13,7 +13,7 @@ A Valheim mod that adds a **Torch Golem**: a friendly ghost that takes fuel from
 
 ## Features
 
-- Built with the Hammer (Misc tab) near a **Forge**: 2 Surtling core, 5 Greydwarf eye, 1 Ectoplasm.
+- Built with the Hammer (Misc tab) near a **Forge**: 2 Surtling core, 30 Bone fragments, 5 Ectoplasm.
 - Refuels any player-built fire within 50 m of where it was built, once it drops to half fuel.
 - Carries up to a stack of each fuel type that a fire in range actually uses, and returns fuel nothing needs anymore. Fuel types are detected automatically (wood, resin, greydwarf eyes, guck, coal, and modded fires).
 - **Never** touches production stations: furnaces, kilns, blast furnaces, eitr refineries, spinning wheels, windmills, cooking stations, etc.
@@ -50,7 +50,7 @@ A modded player on a server without the mod simply doesn't get the hammer piece.
 | Fuel | `ExcludedPieces` | | e.g. `piece_bathtub` |
 | Appearance | `GolemPrefab` | Ghost | Must be a vanilla creature |
 | Appearance | `GolemName` | Torch Golem | |
-| Building | `Recipe` | `SurtlingCore:2,GreydwarfEye:5,Ectoplasm:1` | |
+| Building | `Recipe` | `SurtlingCore:2,BoneFragments:30,Ectoplasm:5` | |
 | Building | `CraftingStation` | forge | |
 
 ## Building from source

@@ -5,6 +5,7 @@
 - The golem is now a vanilla ghost puppeted by the server. It flies straight to fires and chests through walls and returns above its build spot when idle.
 - E rests/wakes a golem and Shift+E dismisses it (modded players).
 - Refuels are confirmed before carried fuel is spent; chest edits happen only while the server holds the chest.
+- Recipe: 2 Surtling core, 30 Bone fragments, 5 Ectoplasm at a Forge.
 - Removed the Jötunn dependency and config sync (settings live on the server).
 - Golems placed with 1.x no longer appear, since their custom object no longer exists. Dismantle them with 1.x first to get their materials back.
 
