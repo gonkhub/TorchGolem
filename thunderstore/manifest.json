@@ -1,10 +1,9 @@
 {
   "name": "TorchGolem",
   "version_number": "0.0.0",
-  "website_url": "",
-  "description": "A buildable helper golem that takes fuel from nearby chests and keeps your torches, sconces, braziers and hearths lit. Never touches furnaces, kilns or refineries.",
+  "website_url": "https://github.com/gonkhub/TorchGolem",
+  "description": "A server-side helper ghost that takes fuel from nearby chests and keeps your torches, sconces, braziers and hearths lit. Only the server and builders need the mod.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2350",
-    "ValheimModding-Jotunn-2.30.0"
+    "denikson-BepInExPack_Valheim-5.4.2350"
   ]
 }

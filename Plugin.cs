@@ -1,106 +1,92 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using Jotunn.Managers;
-using Jotunn.Utils;
 
 namespace TorchGolemMod
 {
+    /// <summary>
+    /// Torch Golem is server-authoritative. The server owns every golem (a vanilla ghost, so unmodded
+    /// players see it normally) and runs all of its behaviour by writing to its network data.
+    /// Players with the mod additionally get a hammer piece to build golems and can rest or dismiss them;
+    /// players without it still see golems at work and benefit from lit torches.
+    /// </summary>
     [BepInPlugin(Guid, ModName, Version)]
-    [BepInDependency(Jotunn.Main.ModGuid)]
-    // Clients and server must both run the mod, with matching major.minor versions; Jotunn rejects the connection otherwise.
-    [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.Minor)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "jtboyd.torchgolem";
+        public const string Guid = "gonkhub.torchgolem";
         public const string ModName = "Torch Golem";
-        public const string Version = "1.1.0";
+        public const string Version = "2.0.0";
 
         internal static ManualLogSource Log;
 
+        // Server: behaviour
         internal static ConfigEntry<float> WorkRadius;
         internal static ConfigEntry<float> RefuelBelowPercent;
         internal static ConfigEntry<float> RestockBelowPercent;
         internal static ConfigEntry<int> CarryLimit;
-        internal static ConfigEntry<string> FuelItems;
-        internal static ConfigEntry<string> ExcludedFuel;
-        internal static ConfigEntry<string> ExcludedPieces;
         internal static ConfigEntry<float> MoveSpeed;
         internal static ConfigEntry<float> ScanInterval;
         internal static ConfigEntry<float> InteractRange;
-        internal static ConfigEntry<bool> Wander;
-        internal static ConfigEntry<float> WanderRadius;
-        internal static ConfigEntry<bool> TeleportWhenStuck;
-        internal static ConfigEntry<float> StuckSeconds;
+        internal static ConfigEntry<int> MaxGolemsPerPlayer;
 
+        // Server: fuel
+        internal static ConfigEntry<string> FuelItems;
+        internal static ConfigEntry<string> ExcludedFuel;
+        internal static ConfigEntry<string> ExcludedPieces;
+
+        // Server: appearance (vanilla assets only, so unmodded players can see it)
+        internal static ConfigEntry<string> GolemPrefab;
+        internal static ConfigEntry<string> GolemName;
+        internal static ConfigEntry<float> HoverHeight;
+
+        // Server, sent to modded clients: building
         internal static ConfigEntry<string> Recipe;
         internal static ConfigEntry<string> CraftingStation;
+
+        // Client
         internal static ConfigEntry<string> IconItem;
 
-        internal static ConfigEntry<string> VisualPrefab;
-        internal static ConfigEntry<float> VisualScale;
-        internal static ConfigEntry<bool> Glow;
-        internal static ConfigEntry<float> AnimSpeedMultiplier;
-
         internal static HashSet<string> ParseList(string value) =>
-            new HashSet<string>(value.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0), StringComparer.OrdinalIgnoreCase);
+            new HashSet<string>((value ?? "").Split(',').Select(s => s.Trim()).Where(s => s.Length > 0), StringComparer.OrdinalIgnoreCase);
 
         void Awake()
         {
             Log = Logger;
 
-            // Gameplay settings are server-authoritative: the golem's logic runs on whichever client owns it,
-            // so every client must use the server's values. Only admins can change them in game.
-            WorkRadius = Synced("Behaviour", "WorkRadius", 50f, "How far (meters) from where the golem was built it will look for fires and containers.");
-            RefuelBelowPercent = Synced("Behaviour", "RefuelBelowPercent", 0.5f, "A fire gets topped up once its fuel drops to this fraction of max (0.5 = half empty).");
-            RestockBelowPercent = Synced("Behaviour", "RestockBelowPercent", 0.25f, "When idle, the golem restocks a fuel type from containers once it carries less than this fraction of its carry limit.");
-            CarryLimit = Synced("Behaviour", "CarryLimit", 0, "Max of each fuel type carried. 0 = one full stack of that item.");
-            FuelItems = Synced("Fuel", "FuelItems", "Auto", "Fuel the golem may take from containers. 'Auto' = every fuel used by a buildable torch/fire/brazier in the game (including modded ones, listed in the log at world load). Otherwise a comma-separated list of item prefab names, e.g. Wood,Resin,GreydwarfEye,Guck.");
-            ExcludedFuel = Synced("Fuel", "ExcludedFuel", "", "Item prefab names never used as fuel, even in Auto mode. e.g. Coal if you want to keep it for smelting.");
-            ExcludedPieces = Synced("Fuel", "ExcludedPieces", "", "Piece prefab names the golem must never refuel, e.g. piece_bathtub. Furnaces, kilns, refineries and other production stations are always excluded.");
-            MoveSpeed = Synced("Behaviour", "MoveSpeed", 2.2f, "Walking speed in m/s.");
-            ScanInterval = Synced("Behaviour", "ScanInterval", 3f, "Seconds between looking for work while idle.");
-            InteractRange = Synced("Behaviour", "InteractRange", 1.8f, "Horizontal distance at which the golem can reach a fire or container.");
-            Wander = Synced("Behaviour", "Wander", true, "Wander around home when there's nothing to do.");
-            WanderRadius = Synced("Behaviour", "WanderRadius", 6f, "How far the golem wanders from home while idle.");
-            TeleportWhenStuck = Synced("Behaviour", "TeleportWhenStuck", true, "If the golem can't path to a target, pop it next to the target instead of giving up.");
-            StuckSeconds = Synced("Behaviour", "StuckSeconds", 4f, "Seconds without progress before the golem counts as stuck.");
+            WorkRadius = Config.Bind("Behaviour", "WorkRadius", 50f, "How far (meters) from where a golem was built it looks for fires and chests.");
+            RefuelBelowPercent = Config.Bind("Behaviour", "RefuelBelowPercent", 0.5f, "A fire gets topped up once its fuel drops to this fraction of max.");
+            RestockBelowPercent = Config.Bind("Behaviour", "RestockBelowPercent", 0.25f, "When idle, restock a fuel type once carrying less than this fraction of the carry limit.");
+            CarryLimit = Config.Bind("Behaviour", "CarryLimit", 0, "Max of each fuel type carried. 0 = one full stack of that item.");
+            MoveSpeed = Config.Bind("Behaviour", "MoveSpeed", 3f, "Flying speed in m/s.");
+            ScanInterval = Config.Bind("Behaviour", "ScanInterval", 3f, "Seconds between looking for work while idle.");
+            InteractRange = Config.Bind("Behaviour", "InteractRange", 1.5f, "How far from a fire or chest the golem hovers while using it.");
+            HoverHeight = Config.Bind("Behaviour", "HoverHeight", 1.2f, "How high above its build spot, fires and chests the golem floats.");
+            MaxGolemsPerPlayer = Config.Bind("Behaviour", "MaxGolemsPerPlayer", 3, "How many golems one player may own. 0 = unlimited.");
 
-            Recipe = Synced("Building", "Recipe", "SurtlingCore:2,GreydwarfEye:5,Ectoplasm:1", "Build cost as PrefabName:Amount pairs.");
-            CraftingStation = Synced("Building", "CraftingStation", "forge", "Prefab name of the crafting station the golem must be built near (e.g. piece_workbench, forge). Empty = none.");
-            IconItem = Synced("Building", "IconItem", "TrophyGreydwarf", "Item prefab whose icon is used in the hammer menu.");
+            FuelItems = Config.Bind("Fuel", "FuelItems", "Auto", "Fuel golems may take from chests. 'Auto' = every fuel used by a buildable torch/fire/brazier (listed in the log at world load). Otherwise a comma-separated list of item prefab names.");
+            ExcludedFuel = Config.Bind("Fuel", "ExcludedFuel", "", "Item prefab names never used as fuel, even in Auto mode, e.g. Coal.");
+            ExcludedPieces = Config.Bind("Fuel", "ExcludedPieces", "", "Piece prefab names golems never refuel, e.g. piece_bathtub. Production stations are always excluded.");
 
-            // Purely cosmetic, so each player keeps their own.
-            VisualPrefab = Config.Bind("Visual", "VisualPrefab", "Greyling", "Creature prefab whose model the golem borrows. Requires restart.");
-            VisualScale = Config.Bind("Visual", "VisualScale", 0.85f, "Model scale. Requires restart.");
-            Glow = Config.Bind("Visual", "Glow", true, "Give the golem a warm point light. Requires restart.");
-            AnimSpeedMultiplier = Config.Bind("Visual", "AnimSpeedMultiplier", 1f, "Scales the value fed to the walk animation, if the legs look like they're skating.");
+            GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Ghost", "Vanilla creature used as the golem's body, e.g. Ghost or Wraith. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
+            GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Name shown above the golem.");
 
+            Recipe = Config.Bind("Building", "Recipe", "SurtlingCore:2,GreydwarfEye:5,Ectoplasm:1", "Build cost as PrefabName:Amount pairs. The server's value is sent to modded players when they join.");
+            CraftingStation = Config.Bind("Building", "CraftingStation", "forge", "Crafting station the golem must be built near. Empty = none. The server's value is sent to modded players.");
+
+            IconItem = Config.Bind("Client", "IconItem", "Ectoplasm", "Item whose icon is used for the golem in the hammer menu.");
+
+            GolemPrefab.SettingChanged += (_, __) => GolemServer.Instance?.RequestRefresh();
             FuelItems.SettingChanged += (_, __) => FuelRegistry.Invalidate();
             ExcludedFuel.SettingChanged += (_, __) => FuelRegistry.Invalidate();
             ExcludedPieces.SettingChanged += (_, __) => FuelRegistry.Invalidate();
-            Recipe.SettingChanged += (_, __) => GolemPrefab.RefreshPiece();
-            CraftingStation.SettingChanged += (_, __) => GolemPrefab.RefreshPiece();
-            IconItem.SettingChanged += (_, __) => GolemPrefab.RefreshPiece();
 
-            // The world (and the golem's recipe) loads before the server's values arrive, so re-apply once they do.
-            SynchronizationManager.OnConfigurationSynchronized += (_, args) =>
-            {
-                FuelRegistry.Invalidate();
-                GolemPrefab.RefreshPiece();
-                Log.LogInfo(args.InitialSynchronization ? "Received server config" : "Server config updated");
-            };
-
+            gameObject.AddComponent<GolemServer>();
             new Harmony(Guid).PatchAll(typeof(Plugin).Assembly);
             Log.LogInfo($"{ModName} {Version} loaded");
         }
-
-        ConfigEntry<T> Synced<T>(string section, string key, T defaultValue, string description) =>
-            Config.Bind(section, key, defaultValue,
-                new ConfigDescription(description, null, new ConfigurationManagerAttributes { IsAdminOnly = true }));
     }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0
+- **Rewritten to be server-authoritative.** Only the server (and players who want to build golems) need the mod; everyone else sees and interacts with golems in a vanilla game.
+- The golem is now a vanilla ghost puppeted by the server. It flies straight to fires and chests through walls and returns above its build spot when idle.
+- E rests/wakes a golem and Shift+E dismisses it (modded players).
+- Refuels are confirmed before carried fuel is spent; chest edits happen only while the server holds the chest.
+- Removed the Jötunn dependency and config sync (settings live on the server).
+- Golems placed with 1.x no longer appear, since their custom object no longer exists. Dismantle them with 1.x first to get their materials back.
+
 ## 1.1.0
 - Server and all clients must have the mod (enforced by Jötunn, major.minor version must match).
 - Gameplay settings are synced from the server; only admins can change them in game.
