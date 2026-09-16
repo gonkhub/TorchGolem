@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.3
+- Ambient birds (e.g. Seagull) used as a body now show their flying model instead of the landed one. They stay audible to players without the mod: a bird's call is played by each game on its own timer with no way for the server to gate it.
+
 ## 2.1.2
 - The golem is now a **spectral wolf** (`Wolf_spiritcaller`) walking at ground level. It has no sounds of its own, so it is silent for everyone without being held asleep, which means it keeps its name plate and animates normally.
 - Renaming is back (Shift+E, the dialog tamed animals use).

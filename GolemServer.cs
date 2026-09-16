@@ -144,6 +144,8 @@ namespace TorchGolemMod
             zdo.Set(ZDOVars.s_overrideHoverName, name);
             // Stops a host's local instance from equipping the creature's default weapons.
             zdo.Set(ZDOVars.s_addedDefaultItems, true);
+            // Ambient birds show a landed or a flying model based on this; a flying golem should flap.
+            zdo.Set(ZDOVars.s_landed, false);
             ApplySilence(zdo);
             return zdo;
         }
