@@ -1,11 +1,11 @@
-# Builds Torch Golem, deploys it to the "TorchGolem Dev" r2modman profile, and launches Valheim with that profile.
+﻿# Builds Torch Golem, deploys it to the "TorchGolem Server Dev" r2modman profile, and launches Valheim with that profile.
 # Same effect as r2modman's "Start modded", without opening r2modman.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\launch-dev.ps1 [-NoBuild]
 param(
     [switch]$NoBuild,
     [string]$ValheimDir = "C:\Program Files (x86)\Steam\steamapps\common\Valheim",
-    [string]$ProfileName = "TorchGolem Dev"
+    [string]$ProfileName = "TorchGolem Server Dev"
 )
 $ErrorActionPreference = "Stop"
 $profile = Join-Path $env:APPDATA "r2modmanPlus-local\Valheim\profiles\$ProfileName"

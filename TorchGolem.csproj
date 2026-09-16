@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
@@ -14,18 +14,13 @@
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
     <BepInExDir>$(ValheimDir)\BepInEx\core</BepInExDir>
     <!-- Created by tools\setup-dev-profile.ps1. Builds are copied here automatically when it exists. -->
-    <DevProfileDir Condition="'$(DevProfileDir)' == ''">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\TorchGolem Dev</DevProfileDir>
+    <DevProfileDir Condition="'$(DevProfileDir)' == ''">$(APPDATA)\r2modmanPlus-local\Valheim\profiles\TorchGolem Server Dev</DevProfileDir>
   </PropertyGroup>
 
   <Target Name="DeployToDevProfile" AfterTargets="Build" Condition="Exists('$(DevProfileDir)\BepInEx\plugins')">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevProfileDir)\BepInEx\plugins\TorchGolem" ContinueOnError="true" />
-    <Message Importance="high" Text="TorchGolem -> $(DevProfileDir)\BepInEx\plugins\TorchGolem (close Valheim first if the copy fails)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DevProfileDir)\BepInEx\plugins\gonkhub-TorchGolem" Retries="0" ContinueOnError="true" />
+    <Message Importance="high" Text="TorchGolem -> $(DevProfileDir)\BepInEx\plugins\gonkhub-TorchGolem (close Valheim first if the copy fails)" />
   </Target>
-
-  <ItemGroup>
-    <!-- Version check + server->client config sync. Installed separately by players (ValheimModding-Jotunn on Thunderstore). -->
-    <PackageReference Include="JotunnLib" Version="2.30.0" ExcludeAssets="runtime;build;buildTransitive" PrivateAssets="all" />
-  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="BepInEx"><HintPath>$(BepInExDir)\BepInEx.dll</HintPath><Private>false</Private></Reference>

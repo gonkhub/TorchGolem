@@ -5,12 +5,27 @@ using UnityEngine;
 
 namespace TorchGolemMod
 {
+    internal sealed class FireInfo
+    {
+        public string PrefabName;
+        public float MaxFuel;
+        public string FuelItem;
+    }
+
+    internal sealed class ChestInfo
+    {
+        public string PrefabName;
+        public int Width;
+        public int Height;
+        public bool IsPrivate;
+    }
+
     /// <summary>
-    /// Decides which objects count as refuelable light sources and which items the golem may use as fuel.
-    /// The golem only ever looks at <see cref="Fireplace"/> pieces; production stations (furnace, kiln,
-    /// eitr refinery, spinning wheel, windmill...) are <see cref="Smelter"/>s and never qualify. On top of
-    /// that, anything carrying a production/utility component is rejected outright, in case a mod bolts a
-    /// Fireplace onto one.
+    /// Server-side knowledge about prefabs, read once per world from ZNetScene. The server has no instances of
+    /// fires or chests near players, so everything about them comes from their prefab plus their ZDO data.
+    /// Only <see cref="Fireplace"/> pieces count as refuelable; production stations (furnace, kiln, eitr
+    /// refinery, windmill...) are <see cref="Smelter"/>s and never qualify, and anything carrying a
+    /// production/utility component is rejected outright in case a mod bolts a Fireplace onto one.
     /// </summary>
     internal static class FuelRegistry
     {
@@ -29,77 +44,89 @@ namespace TorchGolemMod
             typeof(Incinerator),
         };
 
-        static HashSet<string> s_fuel;
-        static HashSet<string> s_excludedPieces;
         static ZNetScene s_resolvedFor;
-        static readonly Dictionary<string, bool> s_lightSourceCache = new Dictionary<string, bool>();
+        static HashSet<string> s_fuel = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        static readonly Dictionary<int, FireInfo> s_fires = new Dictionary<int, FireInfo>();
+        static readonly Dictionary<int, ChestInfo> s_chests = new Dictionary<int, ChestInfo>();
 
-        internal static void Invalidate()
+        internal static void Invalidate() => s_resolvedFor = null;
+
+        static void EnsureResolved()
         {
-            s_fuel = null;
-            s_excludedPieces = null;
-            s_lightSourceCache.Clear();
+            if (s_resolvedFor != ZNetScene.instance || s_resolvedFor == null)
+                Resolve();
         }
 
-        /// <summary>Item prefab names the golem may carry and put into fires.</summary>
+        /// <summary>Item prefab names golems may carry and put into fires.</summary>
         internal static HashSet<string> Fuel
         {
-            get
-            {
-                if (s_fuel == null || s_resolvedFor != ZNetScene.instance)
-                    Resolve();
-                return s_fuel;
-            }
+            get { EnsureResolved(); return s_fuel; }
         }
 
-        /// <summary>True if this piece is a decorative/light fire the golem is allowed to touch.</summary>
-        internal static bool IsLightSource(GameObject piece, string prefabName)
+        internal static bool TryGetFire(int prefabHash, out FireInfo info)
         {
-            if (s_excludedPieces == null)
-                s_excludedPieces = Plugin.ParseList(Plugin.ExcludedPieces.Value);
-            if (s_excludedPieces.Contains(prefabName))
-                return false;
+            EnsureResolved();
+            return s_fires.TryGetValue(prefabHash, out info);
+        }
 
-            if (!s_lightSourceCache.TryGetValue(prefabName, out bool ok))
-            {
-                ok = !s_forbiddenComponents.Any(t => piece.GetComponentInChildren(t, true) != null);
-                s_lightSourceCache[prefabName] = ok;
-            }
-            return ok;
+        internal static bool TryGetChest(int prefabHash, out ChestInfo info)
+        {
+            EnsureResolved();
+            return s_chests.TryGetValue(prefabHash, out info);
         }
 
         static void Resolve()
         {
             s_resolvedFor = ZNetScene.instance;
-            var fuel = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            s_fires.Clear();
+            s_chests.Clear();
+            s_fuel = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (s_resolvedFor == null)
+                return;
 
-            if (Plugin.FuelItems.Value.Trim().Equals("Auto", StringComparison.OrdinalIgnoreCase))
+            var excludedPieces = Plugin.ParseList(Plugin.ExcludedPieces.Value);
+            var excludedFuel = Plugin.ParseList(Plugin.ExcludedFuel.Value);
+            bool auto = Plugin.FuelItems.Value.Trim().Equals("Auto", StringComparison.OrdinalIgnoreCase);
+            var explicitFuel = auto ? null : Plugin.ParseList(Plugin.FuelItems.Value);
+
+            foreach (var prefab in GetScenePrefabs(s_resolvedFor))
             {
-                var lightSources = new List<string>();
-                if (s_resolvedFor != null)
-                {
-                    foreach (var prefab in GolemPrefab.GetScenePrefabs(s_resolvedFor))
-                    {
-                        if (prefab == null || prefab.GetComponent<Piece>() == null) continue;
-                        if (!prefab.TryGetComponent(out Fireplace fire)) continue;
-                        if (fire.m_fuelItem == null || fire.m_infiniteFuel || !fire.m_canRefill) continue;
-                        if (!IsLightSource(prefab, prefab.name)) continue;
+                if (prefab == null || prefab.GetComponent<Piece>() == null || excludedPieces.Contains(prefab.name))
+                    continue;
 
-                        fuel.Add(fire.m_fuelItem.gameObject.name);
-                        lightSources.Add($"{prefab.name} ({fire.m_fuelItem.gameObject.name})");
-                    }
-                    Plugin.Log.LogInfo($"Refuelable pieces: {string.Join(", ", lightSources)}");
+                if (prefab.TryGetComponent(out Fireplace fire))
+                {
+                    if (fire.m_fuelItem == null || fire.m_infiniteFuel || !fire.m_canRefill || !IsLightSource(prefab))
+                        continue;
+                    string fuel = fire.m_fuelItem.gameObject.name;
+                    if (excludedFuel.Contains(fuel) || (!auto && !explicitFuel.Contains(fuel)))
+                        continue;
+
+                    s_fuel.Add(fuel);
+                    s_fires[prefab.name.GetStableHashCode()] = new FireInfo { PrefabName = prefab.name, MaxFuel = fire.m_maxFuel, FuelItem = fuel };
+                }
+                else if (prefab.TryGetComponent(out Container chest) && prefab.GetComponent<Incinerator>() == null)
+                {
+                    s_chests[prefab.name.GetStableHashCode()] = new ChestInfo
+                    {
+                        PrefabName = prefab.name,
+                        Width = chest.m_width,
+                        Height = chest.m_height,
+                        IsPrivate = chest.m_privacy == Container.PrivacySetting.Private,
+                    };
                 }
             }
-            else
-            {
-                fuel.UnionWith(Plugin.ParseList(Plugin.FuelItems.Value));
-            }
 
-            fuel.ExceptWith(Plugin.ParseList(Plugin.ExcludedFuel.Value));
-            s_fuel = fuel;
-            if (s_resolvedFor != null)
-                Plugin.Log.LogInfo($"Torch Golem fuel types: {string.Join(", ", fuel)}");
+            Plugin.Log.LogInfo($"Refuelable pieces: {string.Join(", ", s_fires.Values.Select(f => $"{f.PrefabName} ({f.FuelItem})"))}");
+            Plugin.Log.LogInfo($"Torch Golem fuel types: {string.Join(", ", s_fuel)}");
         }
+
+        static bool IsLightSource(GameObject prefab) =>
+            !s_forbiddenComponents.Any(t => prefab.GetComponentInChildren(t, true) != null);
+
+        static readonly HarmonyLib.AccessTools.FieldRef<ZNetScene, List<GameObject>> s_prefabsRef =
+            HarmonyLib.AccessTools.FieldRefAccess<ZNetScene, List<GameObject>>("m_prefabs");
+
+        internal static List<GameObject> GetScenePrefabs(ZNetScene scene) => s_prefabsRef(scene);
     }
 }
