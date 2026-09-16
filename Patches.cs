@@ -35,11 +35,10 @@ namespace TorchGolemMod
     static class ZRoutedRpc_HandleRoutedRPC_Patch
     {
         static readonly int s_command = "Command".GetStableHashCode();
-        static readonly int s_setName = "SetName".GetStableHashCode();
 
         static bool Prefix(ZRoutedRpc.RoutedRPCData data)
         {
-            if (data.m_targetZDO.IsNone() || (data.m_methodHash != s_command && data.m_methodHash != s_setName))
+            if (data.m_targetZDO.IsNone() || data.m_methodHash != s_command)
                 return true;
             if (ZNet.instance == null || !ZNet.instance.IsServer() || GolemServer.Instance == null)
                 return true;
@@ -47,20 +46,7 @@ namespace TorchGolemMod
             if (!GolemData.IsGolem(zdo))
                 return true;
 
-            if (data.m_methodHash == s_command)
-            {
-                GolemServer.Instance.ToggleRest(zdo, data.m_senderPeerID);
-            }
-            else
-            {
-                data.m_parameters.SetPos(0);
-                string name = data.m_parameters.ReadString();
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    zdo.Set(ZDOVars.s_tamedName, name);
-                    zdo.Set(ZDOVars.s_overrideHoverName, name);
-                }
-            }
+            GolemServer.Instance.ToggleRest(zdo, data.m_senderPeerID);
             return false;
         }
     }
@@ -188,16 +174,12 @@ namespace TorchGolemMod
                 sb.Append('\n').Append(drop != null ? drop.m_itemData.m_shared.m_name : item).Append(": ").Append(GolemData.GetCarry(zdo, item));
             }
             sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] ").Append(GolemData.IsResting(zdo) ? "Wake up" : "Rest");
-            sb.Append("\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] $hud_rename");
             sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] Hold: dismiss (returns build cost and fuel)");
             __result = Localization.instance.Localize(sb.ToString());
         }
     }
 
-    /// <summary>
-    /// A ghost isn't interactable in vanilla; give modded players E (rest), Shift+E (rename, the same
-    /// dialog tamed animals use) and hold E (dismiss).
-    /// </summary>
+    /// <summary>A ghost isn't interactable in vanilla; give modded players E (rest) and hold E (dismiss).</summary>
     [HarmonyPatch(typeof(Player), "Interact", typeof(GameObject), typeof(bool), typeof(bool))]
     static class Player_Interact_Patch
     {
@@ -206,7 +188,7 @@ namespace TorchGolemMod
         static ZDOID s_holdTarget = ZDOID.None;
         static float s_holdStarted;
 
-        static bool Prefix(Player __instance, GameObject go, bool hold, bool alt)
+        static bool Prefix(Player __instance, GameObject go, bool hold)
         {
             if (!GolemInstances.TryGetGolem(go, out var zdo))
                 return true;
@@ -227,10 +209,7 @@ namespace TorchGolemMod
             }
 
             s_holdTarget = ZDOID.None;
-            if (alt)
-                ClientGolem.RequestRename(zdo);
-            else
-                ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, "Command", __instance.GetZDOID(), true);
+            ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, "Command", __instance.GetZDOID(), true);
             return false;
         }
     }

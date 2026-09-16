@@ -1,10 +1,15 @@
 # Changelog
 
+## 2.1.1
+- Golems are quiet for **everyone**, with animations intact. Being asleep silences a creature's periodic noises, and the sleeping *animation* is a separate value that clients take from the server, so golems are held asleep while their sleeping animation is forced off. 2.1.0 set only the first, which froze the rig and pulled the model apart.
+- The body is now `Ghost_sleeping`, which supports that trick; plain `Ghost` does not and stays audible to players without the mod.
+- Renaming is removed. The game hides name plates of sleeping creatures, so a silent golem has no floating name to rename; players with the mod see its name and status on hover.
+- The log lists silent and animated body options at world load.
+- Bodies that can't be silenced are still muted locally for players running the mod (`MuteSounds`).
+
 ## 2.1.0
-- Golems are kept flagged asleep so they stop making their periodic creature noises, which quiets them for players without the mod too (`SilenceIdleSounds`).
-- Players running the mod also have the golem's own audio switched off locally (`MuteSounds`).
-- Renaming: Shift+E opens the same dialog tamed animals use, and each golem keeps its own name.
-- Dismiss moved to holding E, since Shift+E now renames.
+- Players running the mod have the golem's own audio switched off locally (`MuteSounds`).
+- Dismiss moved to holding E.
 
 ## 2.0.0
 - Modded players: E rests or wakes a golem.

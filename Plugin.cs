@@ -19,7 +19,7 @@ namespace TorchGolemMod
     {
         public const string Guid = "gonkhub.torchgolem";
         public const string ModName = "Torch Golem";
-        public const string Version = "2.1.0";
+        public const string Version = "2.1.1";
 
         internal static ManualLogSource Log;
 
@@ -73,9 +73,9 @@ namespace TorchGolemMod
             ExcludedFuel = Config.Bind("Fuel", "ExcludedFuel", "", "Item prefab names never used as fuel, even in Auto mode, e.g. Coal.");
             ExcludedPieces = Config.Bind("Fuel", "ExcludedPieces", "", "Piece prefab names golems never refuel, e.g. piece_bathtub. Production stations are always excluded.");
 
-            GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Ghost", "Vanilla creature used as the golem's body, e.g. Ghost or Wraith. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
-            GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Name shown above the golem.");
-            SilenceIdleSounds = Config.Bind("Appearance", "SilenceIdleSounds", true, "Keep golems flagged asleep so they stop making their periodic creature noises. Works for players without the mod too; any sound the creature loops constantly can only be muted locally (see MuteSounds).");
+            GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Ghost_sleeping", "Vanilla creature used as the golem's body. Ghost_sleeping is silent for everyone; Ghost is the same ghost but groans for players without the mod. Bodies with no sounds of their own are listed in the log at world load. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
+            GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Name the golem is given. Players with the mod see it on hover; silent bodies have no floating name plate.");
+            SilenceIdleSounds = Config.Bind("Appearance", "SilenceIdleSounds", true, "Silence the golem's periodic creature noises for everyone, including players without the mod, by keeping it flagged asleep while forcing its sleeping animation off. The game hides name plates of sleeping creatures, so the golem's floating name disappears (players with the mod still see it by hovering). Bodies with no sounds of their own, e.g. FrostWisp, keep both. Ignored by bodies that don't sync the sleeping animation, e.g. Ghost.");
 
             Recipe = Config.Bind("Building", "Recipe", "SurtlingCore:2,BoneFragments:30,Ectoplasm:5", "Build cost as PrefabName:Amount pairs. The server's value is sent to modded players when they join.");
             CraftingStation = Config.Bind("Building", "CraftingStation", "forge", "Crafting station the golem must be built near. Empty = none. The server's value is sent to modded players.");
@@ -83,7 +83,8 @@ namespace TorchGolemMod
             IconItem = Config.Bind("Client", "IconItem", "Ectoplasm", "Item whose icon is used for the golem in the hammer menu.");
             MuteSounds = Config.Bind("Client", "MuteSounds", true, "Silence the golem's creature sounds. Only affects your own game: players without the mod still hear it.");
 
-            GolemPrefab.SettingChanged += (_, __) => GolemServer.Instance?.RequestRefresh();
+            GolemPrefab.SettingChanged += (_, __) => { BodyCatalog.Forget(); GolemServer.Instance?.RequestRefresh(); };
+            SilenceIdleSounds.SettingChanged += (_, __) => BodyCatalog.Forget();
             FuelItems.SettingChanged += (_, __) => FuelRegistry.Invalidate();
             ExcludedFuel.SettingChanged += (_, __) => FuelRegistry.Invalidate();
             ExcludedPieces.SettingChanged += (_, __) => FuelRegistry.Invalidate();

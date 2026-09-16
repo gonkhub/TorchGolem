@@ -65,6 +65,7 @@ namespace TorchGolemMod
             m_world = ZNet.instance.GetWorldName();
             m_refreshTimer = 0f;
             Plugin.Log.LogInfo($"Torch Golem server active for world '{m_world}'");
+            BodyCatalog.LogCandidates(ZNetScene.instance);
         }
 
         void Shutdown()
@@ -74,7 +75,7 @@ namespace TorchGolemMod
         }
 
         // Bodies golems may have been built with under earlier settings or versions.
-        static readonly string[] s_knownBodies = { "Ghost", "Wraith", "Skeleton_Friendly" };
+        static readonly string[] s_knownBodies = { "Ghost", "Ghost_sleeping", "Ghost_Void", "Wraith", "FrostWisp", "Skeleton_Friendly" };
 
         public void RequestRefresh() => m_refreshTimer = 0f;
 
@@ -143,7 +144,7 @@ namespace TorchGolemMod
             zdo.Set(ZDOVars.s_overrideHoverName, name);
             // Stops a host's local instance from equipping the creature's default weapons.
             zdo.Set(ZDOVars.s_addedDefaultItems, true);
-            Hush(zdo);
+            ApplySilence(zdo);
             return zdo;
         }
 
@@ -190,16 +191,22 @@ namespace TorchGolemMod
             Plugin.Log.LogInfo($"Spawned torch golem {zdo.m_uid} for player {playerId} at {position}");
         }
 
+        static readonly int s_sleepingAnimation = 438569 + ZSyncAnimation.GetHash("sleeping");
+
         /// <summary>
-        /// Creatures make their periodic noises on a timer that every client runs locally, but it stays quiet
-        /// while the creature is asleep, and each client reads that flag off the creature when it spawns.
-        /// Marking a golem asleep therefore silences those sounds for players without the mod too. Sounds
-        /// looping from the prefab itself are out of the server's reach (see ClientGolem.Silence).
+        /// Creatures make their periodic noises only while awake, so flagging a golem asleep silences it for
+        /// everyone, mod or not. "Asleep" is two separate values though: the gameplay flag, and the animation
+        /// switch that plays the sleeping pose (which freezes the rig and pulls the model apart, as 2.1.0
+        /// showed). Clients take animation switches from the server continuously, so the flag can be held on
+        /// while the animation switch is held off. Bodies that don't sync that switch stay awake instead.
         /// </summary>
-        public static void Hush(ZDO zdo)
+        public static void ApplySilence(ZDO zdo)
         {
-            if (Plugin.SilenceIdleSounds.Value != zdo.GetBool(ZDOVars.s_sleeping))
-                zdo.Set(ZDOVars.s_sleeping, Plugin.SilenceIdleSounds.Value);
+            bool asleep = Plugin.SilenceIdleSounds.Value && BodyCatalog.CanSleepAwake(Plugin.GolemPrefab.Value);
+            if (zdo.GetBool(ZDOVars.s_sleeping) != asleep)
+                zdo.Set(ZDOVars.s_sleeping, asleep);
+            if (asleep && zdo.GetInt(s_sleepingAnimation) != 0)
+                zdo.Set(s_sleepingAnimation, 0);
         }
 
         public void Dismiss(long sender, ZDOID id)

@@ -105,7 +105,7 @@ namespace TorchGolemMod
             long session = ZDOMan.GetSessionID();
             if (m_zdo.GetOwner() != session)
                 m_zdo.SetOwner(session);
-            GolemServer.Hush(m_zdo);
+            GolemServer.ApplySilence(m_zdo);
 
             // Nobody around to see it, and fires/chests nobody is near aren't simulated anyway.
             if (!playersNearby)
@@ -511,7 +511,11 @@ namespace TorchGolemMod
                     body.rotation = m_rot;
                 }
                 if (view.TryGetComponent(out ZSyncAnimation anim))
+                {
                     anim.SetFloat("forward_speed", m_speed);
+                    // A host owns its own instance, so nothing syncs the animation switch to it.
+                    anim.SetBool("sleeping", false);
+                }
                 return;
             }
 
