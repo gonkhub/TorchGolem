@@ -105,6 +105,7 @@ namespace TorchGolemMod
             long session = ZDOMan.GetSessionID();
             if (m_zdo.GetOwner() != session)
                 m_zdo.SetOwner(session);
+            GolemServer.Hush(m_zdo);
 
             // Nobody around to see it, and fires/chests nobody is near aren't simulated anyway.
             if (!playersNearby)

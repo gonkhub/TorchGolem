@@ -143,6 +143,7 @@ namespace TorchGolemMod
             zdo.Set(ZDOVars.s_overrideHoverName, name);
             // Stops a host's local instance from equipping the creature's default weapons.
             zdo.Set(ZDOVars.s_addedDefaultItems, true);
+            Hush(zdo);
             return zdo;
         }
 
@@ -187,6 +188,18 @@ namespace TorchGolemMod
 
             m_brains[zdo.m_uid] = new GolemBrain(zdo);
             Plugin.Log.LogInfo($"Spawned torch golem {zdo.m_uid} for player {playerId} at {position}");
+        }
+
+        /// <summary>
+        /// Creatures make their periodic noises on a timer that every client runs locally, but it stays quiet
+        /// while the creature is asleep, and each client reads that flag off the creature when it spawns.
+        /// Marking a golem asleep therefore silences those sounds for players without the mod too. Sounds
+        /// looping from the prefab itself are out of the server's reach (see ClientGolem.Silence).
+        /// </summary>
+        public static void Hush(ZDO zdo)
+        {
+            if (Plugin.SilenceIdleSounds.Value != zdo.GetBool(ZDOVars.s_sleeping))
+                zdo.Set(ZDOVars.s_sleeping, Plugin.SilenceIdleSounds.Value);
         }
 
         public void Dismiss(long sender, ZDOID id)

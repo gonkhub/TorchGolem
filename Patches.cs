@@ -188,27 +188,61 @@ namespace TorchGolemMod
                 sb.Append('\n').Append(drop != null ? drop.m_itemData.m_shared.m_name : item).Append(": ").Append(GolemData.GetCarry(zdo, item));
             }
             sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] ").Append(GolemData.IsResting(zdo) ? "Wake up" : "Rest");
-            sb.Append("\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] Dismiss (returns build cost and fuel)");
+            sb.Append("\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] $hud_rename");
+            sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] Hold: dismiss (returns build cost and fuel)");
             __result = Localization.instance.Localize(sb.ToString());
         }
     }
 
-    /// <summary>A ghost isn't interactable in vanilla; give modded players E (rest) and Shift+E (dismiss).</summary>
+    /// <summary>
+    /// A ghost isn't interactable in vanilla; give modded players E (rest), Shift+E (rename, the same
+    /// dialog tamed animals use) and hold E (dismiss).
+    /// </summary>
     [HarmonyPatch(typeof(Player), "Interact", typeof(GameObject), typeof(bool), typeof(bool))]
     static class Player_Interact_Patch
     {
+        const float HoldSecondsToDismiss = 1f;
+
+        static ZDOID s_holdTarget = ZDOID.None;
+        static float s_holdStarted;
+
         static bool Prefix(Player __instance, GameObject go, bool hold, bool alt)
         {
             if (!GolemInstances.TryGetGolem(go, out var zdo))
                 return true;
-            if (!hold)
+
+            if (hold)
             {
-                if (alt)
+                if (s_holdTarget != zdo.m_uid)
+                {
+                    s_holdTarget = zdo.m_uid;
+                    s_holdStarted = Time.time;
+                }
+                else if (Time.time - s_holdStarted >= HoldSecondsToDismiss)
+                {
+                    s_holdTarget = ZDOID.None;
                     Protocol.SendDismiss(zdo.m_uid);
-                else
-                    ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, "Command", __instance.GetZDOID(), true);
+                }
+                return false;
             }
+
+            s_holdTarget = ZDOID.None;
+            if (alt)
+                ClientGolem.RequestRename(zdo);
+            else
+                ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, "Command", __instance.GetZDOID(), true);
             return false;
+        }
+    }
+
+    /// <summary>Golems are silenced as they spawn (for players running the mod).</summary>
+    [HarmonyPatch(typeof(ZNetScene), "CreateObject")]
+    static class ZNetScene_CreateObject_Patch
+    {
+        static void Postfix(ZDO zdo, GameObject __result)
+        {
+            if (__result != null && GolemData.IsGolem(zdo))
+                ClientGolem.Silence(__result);
         }
     }
 }

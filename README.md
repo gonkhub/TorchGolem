@@ -18,7 +18,8 @@ A Valheim mod that adds a **Torch Golem**: a friendly ghost that takes fuel from
 - Carries up to a stack of each fuel type that a fire in range actually uses, and returns fuel nothing needs anymore. Fuel types are detected automatically (wood, resin, greydwarf eyes, guck, coal, and modded fires).
 - **Never** touches production stations: furnaces, kilns, blast furnaces, eitr refineries, spinning wheels, windmills, cooking stations, etc.
 - Respects private chests.
-- **E** rests/wakes the golem; **Shift+E** dismisses it, returning its build cost and carried fuel (modded players; dismiss needs owner or admin).
+- Modded players: **E** rests/wakes it, **Shift+E** renames it (the same dialog tamed animals use), and **holding E** dismisses it, returning its build cost and carried fuel (owner or admin).
+- Its creature sounds are silenced for players running the mod (`MuteSounds`). Sounds play locally in each game, so players without the mod still hear the ghost.
 - Golems can't be hurt, and players' tames and turrets leave them alone.
 
 ## Installation
@@ -49,7 +50,8 @@ A modded player on a server without the mod simply doesn't get the hammer piece.
 | Fuel | `ExcludedFuel` | | e.g. `Coal` to keep it for smelting |
 | Fuel | `ExcludedPieces` | | e.g. `piece_bathtub` |
 | Appearance | `GolemPrefab` | Ghost | Must be a vanilla creature |
-| Appearance | `GolemName` | Torch Golem | |
+| Appearance | `GolemName` | Torch Golem | Starting name; rename in game with Shift+E |
+| Client | `MuteSounds` | true | Silence the golem in your own game |
 | Building | `Recipe` | `SurtlingCore:2,BoneFragments:30,Ectoplasm:5` | |
 | Building | `CraftingStation` | forge | |
 

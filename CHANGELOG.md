@@ -3,7 +3,8 @@
 ## 2.0.0
 - **Rewritten to be server-authoritative.** Only the server (and players who want to build golems) need the mod; everyone else sees and interacts with golems in a vanilla game.
 - The golem is now a vanilla ghost puppeted by the server. It flies straight to fires and chests through walls and returns above its build spot when idle.
-- E rests/wakes a golem and Shift+E dismisses it (modded players).
+- Modded players: E rests/wakes a golem, Shift+E renames it like a tamed animal, and holding E dismisses it.
+- Golem sounds are silenced for players running the mod (`MuteSounds`).
 - Refuels are confirmed before carried fuel is spent; chest edits happen only while the server holds the chest.
 - Recipe: 2 Surtling core, 30 Bone fragments, 5 Ectoplasm at a Forge.
 - Removed the Jötunn dependency and config sync (settings live on the server).
