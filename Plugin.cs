@@ -19,7 +19,7 @@ namespace TorchGolemMod
     {
         public const string Guid = "gonkhub.torchgolem";
         public const string ModName = "Torch Golem";
-        public const string Version = "2.0.0";
+        public const string Version = "2.1.0";
 
         internal static ManualLogSource Log;
 
