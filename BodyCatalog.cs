@@ -28,13 +28,36 @@ namespace TorchGolemMod
                 return false;
 
             var prefab = ZNetScene.instance.GetPrefab(prefabName);
-            var animation = prefab != null ? prefab.GetComponent<ZSyncAnimation>() : null;
+            if (prefab == null)
+            {
+                Plugin.Log.LogError($"GolemPrefab '{prefabName}' doesn't exist. Golems can't be created until this is a real prefab name.");
+                s_canSleepAwake[prefabName] = false;
+                return false;
+            }
+
+            var animation = prefab.GetComponent<ZSyncAnimation>();
             can = animation != null && animation.m_syncBools.Contains("sleeping");
             s_canSleepAwake[prefabName] = can;
-            Plugin.Log.LogInfo(can
-                ? $"'{prefabName}' can be kept quiet for everyone (it syncs the sleeping animation)."
-                : $"'{prefabName}' can't be silenced for players without the mod; it doesn't sync the sleeping animation.");
+            LogProfile(prefab, animation, can);
             return can;
+        }
+
+        /// <summary>What a body can and can't do as a golem, so surprises show up in the log, not in game.</summary>
+        static void LogProfile(GameObject prefab, ZSyncAnimation animation, bool canSleepAwake)
+        {
+            bool moves = prefab.GetComponent<ZSyncTransform>() != null;
+            bool animates = animation != null && animation.m_syncFloats.Contains("forward_speed");
+            var ai = prefab.GetComponent<BaseAI>();
+            int idle = ai != null ? ai.m_idleSound?.m_effectPrefabs?.Count(e => e != null && e.m_enabled && e.m_prefab != null) ?? 0 : 0;
+            int loops = prefab.GetComponentsInChildren<AudioSource>(true).Count(a => a.loop && a.playOnAwake);
+
+            Plugin.Log.LogInfo($"Body '{prefab.name}': moves for others={moves}, animates={animates}, " +
+                               $"idle sounds={idle}, looping sounds={loops}, can be silenced={canSleepAwake}, " +
+                               $"creature={prefab.GetComponent<Character>() != null}");
+            if (!moves)
+                Plugin.Log.LogError($"Body '{prefab.name}' has no synced transform: other players would see it stuck in place. Pick another GolemPrefab.");
+            if (idle + loops > 0 && !canSleepAwake && Plugin.SilenceIdleSounds.Value)
+                Plugin.Log.LogWarning($"Body '{prefab.name}' CANNOT be silenced: players without the mod will hear it.");
         }
 
         public static void Forget() => s_canSleepAwake.Clear();

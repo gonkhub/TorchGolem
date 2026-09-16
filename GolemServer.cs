@@ -75,7 +75,7 @@ namespace TorchGolemMod
         }
 
         // Bodies golems may have been built with under earlier settings or versions.
-        static readonly string[] s_knownBodies = { "Ghost", "Ghost_sleeping", "Ghost_Void", "Wraith", "FrostWisp", "Skeleton_Friendly" };
+        static readonly string[] s_knownBodies = { "Ghost", "Ghost_sleeping", "Ghost_Void", "Wraith", "FrostWisp", "Seagull", "ShadowPerson", "Wolf_spiritcaller", "Skeleton_Friendly" };
 
         public void RequestRefresh() => m_refreshTimer = 0f;
 

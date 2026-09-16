@@ -9,7 +9,7 @@ using HarmonyLib;
 namespace TorchGolemMod
 {
     /// <summary>
-    /// Torch Golem is server-authoritative. The server owns every golem (a vanilla ghost, so unmodded
+    /// Torch Golem is server-authoritative. The server owns every golem (a vanilla creature, so unmodded
     /// players see it normally) and runs all of its behaviour by writing to its network data.
     /// Players with the mod additionally get a hammer piece to build golems and can rest or dismiss them;
     /// players without it still see golems at work and benefit from lit torches.
@@ -19,7 +19,7 @@ namespace TorchGolemMod
     {
         public const string Guid = "gonkhub.torchgolem";
         public const string ModName = "Torch Golem";
-        public const string Version = "2.1.1";
+        public const string Version = "2.1.2";
 
         internal static ManualLogSource Log;
 
@@ -63,18 +63,18 @@ namespace TorchGolemMod
             RefuelBelowPercent = Config.Bind("Behaviour", "RefuelBelowPercent", 0.5f, "A fire gets topped up once its fuel drops to this fraction of max.");
             RestockBelowPercent = Config.Bind("Behaviour", "RestockBelowPercent", 0.25f, "When idle, restock a fuel type once carrying less than this fraction of the carry limit.");
             CarryLimit = Config.Bind("Behaviour", "CarryLimit", 0, "Max of each fuel type carried. 0 = one full stack of that item.");
-            MoveSpeed = Config.Bind("Behaviour", "MoveSpeed", 3f, "Flying speed in m/s.");
+            MoveSpeed = Config.Bind("Behaviour", "MoveSpeed", 3f, "Travel speed in m/s.");
             ScanInterval = Config.Bind("Behaviour", "ScanInterval", 3f, "Seconds between looking for work while idle.");
             InteractRange = Config.Bind("Behaviour", "InteractRange", 1.5f, "How far from a fire or chest the golem hovers while using it.");
-            HoverHeight = Config.Bind("Behaviour", "HoverHeight", 1.2f, "How high above its build spot, fires and chests the golem floats.");
+            HoverHeight = Config.Bind("Behaviour", "HoverHeight", 0f, "How high above its build spot, fires and chests the golem floats. 0 suits a walker like Wolf_spiritcaller; raise it to about 1.2 for a flier like Ghost_sleeping.");
             MaxGolemsPerPlayer = Config.Bind("Behaviour", "MaxGolemsPerPlayer", 3, "How many golems one player may own. 0 = unlimited.");
 
             FuelItems = Config.Bind("Fuel", "FuelItems", "Auto", "Fuel golems may take from chests. 'Auto' = every fuel used by a buildable torch/fire/brazier (listed in the log at world load). Otherwise a comma-separated list of item prefab names.");
             ExcludedFuel = Config.Bind("Fuel", "ExcludedFuel", "", "Item prefab names never used as fuel, even in Auto mode, e.g. Coal.");
             ExcludedPieces = Config.Bind("Fuel", "ExcludedPieces", "", "Piece prefab names golems never refuel, e.g. piece_bathtub. Production stations are always excluded.");
 
-            GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Ghost_sleeping", "Vanilla creature used as the golem's body. Ghost_sleeping is silent for everyone; Ghost is the same ghost but groans for players without the mod. Bodies with no sounds of their own are listed in the log at world load. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
-            GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Name the golem is given. Players with the mod see it on hover; silent bodies have no floating name plate.");
+            GolemPrefab = Config.Bind("Appearance", "GolemPrefab", "Wolf_spiritcaller", "Vanilla creature used as the golem's body. Wolf_spiritcaller has no sounds of its own, so it stays silent for everyone while keeping its name plate. Ghost_sleeping is a silent ghost but has no name plate; plain Ghost groans for players without the mod. More options are listed in the log at world load. Must be vanilla so players without the mod can see it. Existing golems switch to the new body automatically.");
+            GolemName = Config.Bind("Appearance", "GolemName", "Torch Golem", "Starting name for new golems; rename them in game with Shift+E. Bodies held asleep to stay silent have no floating name plate, but players with the mod always see the name on hover.");
             SilenceIdleSounds = Config.Bind("Appearance", "SilenceIdleSounds", true, "Silence the golem's periodic creature noises for everyone, including players without the mod, by keeping it flagged asleep while forcing its sleeping animation off. The game hides name plates of sleeping creatures, so the golem's floating name disappears (players with the mod still see it by hovering). Bodies with no sounds of their own, e.g. FrostWisp, keep both. Ignored by bodies that don't sync the sleeping animation, e.g. Ghost.");
 
             Recipe = Config.Bind("Building", "Recipe", "SurtlingCore:2,BoneFragments:30,Ectoplasm:5", "Build cost as PrefabName:Amount pairs. The server's value is sent to modded players when they join.");

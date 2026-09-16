@@ -1,13 +1,13 @@
 ﻿# Torch Golem
 
-A Valheim mod that adds a **Torch Golem**: a friendly ghost that takes fuel from nearby chests and drifts around your base keeping torches, sconces, braziers, campfires and hearths lit.
+A Valheim mod that adds a **Torch Golem**: a spectral wolf that takes fuel from nearby chests and roams your base keeping torches, sconces, braziers, campfires and hearths lit.
 
-**Server-side first.** The golem is a vanilla ghost run entirely by the server, so players who don't install the mod still see it working and enjoy lit torches. Only players who want to *build* golems need the mod.
+**Server-side first.** The golem is a vanilla creature run entirely by the server, so players who don't install the mod still see it working and enjoy lit torches. Only players who want to *build* golems need the mod.
 
 ## How it works
 
 - The server owns every golem and moves it itself, so no player's game ever runs its AI.
-- It flies in a straight line to each fire or chest, through walls, and floats back above the spot it was built whenever it has nothing to do.
+- It travels in a straight line to each fire or chest, through walls, and returns to the spot it was built whenever it has nothing to do.
 - Refuelling uses the same network message a player's own refuel sends, and carried fuel is only spent once the fire's fuel is seen to rise.
 - Chests are edited by the server only while it holds ownership of them, and never while someone has them open.
 
@@ -18,9 +18,8 @@ A Valheim mod that adds a **Torch Golem**: a friendly ghost that takes fuel from
 - Carries up to a stack of each fuel type that a fire in range actually uses, and returns fuel nothing needs anymore. Fuel types are detected automatically (wood, resin, greydwarf eyes, guck, coal, and modded fires).
 - **Never** touches production stations: furnaces, kilns, blast furnaces, eitr refineries, spinning wheels, windmills, cooking stations, etc.
 - Respects private chests.
-- Modded players: **E** rests/wakes it, and **holding E** dismisses it, returning its build cost and carried fuel (owner or admin). Hovering shows its status and what it carries.
-- Silent for **everyone**, mod or not (`SilenceIdleSounds`): the golem is held asleep, which stops a creature's periodic noises, while its sleeping animation is forced off so it still moves normally. The game hides name plates of sleeping creatures, so golems have no floating name; players with the mod see the name on hover instead.
-- Other bodies trade differently (`Ghost` keeps its name plate but groans for players without the mod). The log lists silent and animated options each time a world loads.
+- Modded players: **E** rests/wakes it, **Shift+E** renames it (the dialog tamed animals use), and **holding E** dismisses it, returning its build cost and carried fuel (owner or admin). Hovering shows its status and what it carries.
+- Silent for **everyone**, mod or not: the default body has no sounds of its own. Bodies that do make noise can be held asleep to silence them (`SilenceIdleSounds`), at the cost of their name plate; the log lists silent and animated options each time a world loads.
 - Golems can't be hurt, and players' tames and turrets leave them alone.
 
 ## Installation
@@ -44,14 +43,14 @@ A modded player on a server without the mod simply doesn't get the hammer piece.
 | Behaviour | `WorkRadius` | 50 | Range from the golem's build spot |
 | Behaviour | `RefuelBelowPercent` | 0.5 | Refuel once a fire is this empty |
 | Behaviour | `CarryLimit` | 0 | Max per fuel type (0 = one stack) |
-| Behaviour | `MoveSpeed` | 3 | Flying speed |
-| Behaviour | `HoverHeight` | 1.2 | Float height above home, fires and chests |
+| Behaviour | `MoveSpeed` | 3 | Travel speed |
+| Behaviour | `HoverHeight` | 0 | Float height; raise it for a flying body |
 | Behaviour | `MaxGolemsPerPlayer` | 3 | 0 = unlimited |
 | Fuel | `FuelItems` | Auto | `Auto` or a list like `Wood,Resin,Guck` |
 | Fuel | `ExcludedFuel` | | e.g. `Coal` to keep it for smelting |
 | Fuel | `ExcludedPieces` | | e.g. `piece_bathtub` |
-| Appearance | `GolemPrefab` | Ghost_sleeping | Must be a vanilla creature |
-| Appearance | `GolemName` | Torch Golem | Shown on hover for players with the mod |
+| Appearance | `GolemPrefab` | Wolf_spiritcaller | Must be a vanilla creature |
+| Appearance | `GolemName` | Torch Golem | Starting name; rename in game with Shift+E |
 | Appearance | `SilenceIdleSounds` | true | Silence periodic noises for everyone |
 | Client | `MuteSounds` | true | Mute the golem in your own game |
 | Building | `Recipe` | `SurtlingCore:2,BoneFragments:30,Ectoplasm:5` | |

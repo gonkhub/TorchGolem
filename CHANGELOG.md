@@ -1,9 +1,15 @@
 # Changelog
 
+## 2.1.2
+- The golem is now a **spectral wolf** (`Wolf_spiritcaller`) walking at ground level. It has no sounds of its own, so it is silent for everyone without being held asleep, which means it keeps its name plate and animates normally.
+- Renaming is back (Shift+E, the dialog tamed animals use).
+- The log reports what any chosen body supports: whether it moves for other players, animates, makes sounds, and can be silenced.
+- Bodies can be any networked object now, not only creatures.
+
 ## 2.1.1
 - Golems are quiet for **everyone**, with animations intact. Being asleep silences a creature's periodic noises, and the sleeping *animation* is a separate value that clients take from the server, so golems are held asleep while their sleeping animation is forced off. 2.1.0 set only the first, which froze the rig and pulled the model apart.
 - The body is now `Ghost_sleeping`, which supports that trick; plain `Ghost` does not and stays audible to players without the mod.
-- Renaming is removed. The game hides name plates of sleeping creatures, so a silent golem has no floating name to rename; players with the mod see its name and status on hover.
+- Renaming (Shift+E, the dialog tamed animals use) works on bodies that aren't held asleep, which is where name plates show. Players with the mod always see the name on hover.
 - The log lists silent and animated body options at world load.
 - Bodies that can't be silenced are still muted locally for players running the mod (`MuteSounds`).
 
