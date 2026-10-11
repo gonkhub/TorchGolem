@@ -7,7 +7,7 @@ A Valheim mod that adds a **Torch Golem**: a spectral wolf that takes fuel from 
 ## How it works
 
 - The server owns every golem and moves it itself, so no player's game ever runs its AI.
-- It travels in a straight line to each fire or chest, through walls, and returns to the spot it was built whenever it has nothing to do.
+- It travels in a straight line to each fire or chest, through walls. When a job is done it stays put and looks for the next one straight away, and only drifts back to the spot it was built once it has had nothing to do for a few seconds (`ReturnHomeDelay`).
 - Refuelling uses the same network message a player's own refuel sends, and carried fuel is only spent once the fire's fuel is seen to rise.
 - Chests are edited by the server only while it holds ownership of them, and never while someone has them open.
 
@@ -16,9 +16,10 @@ A Valheim mod that adds a **Torch Golem**: a spectral wolf that takes fuel from 
 - Built with the Hammer (Misc tab) near a **Forge**: 2 Surtling core, 30 Bone fragments, 5 Ectoplasm.
 - Refuels any player-built fire within 50 m of where it was built, once it drops to half fuel.
 - Carries up to a stack of each fuel type that a fire in range actually uses, and returns fuel nothing needs anymore. Fuel types are detected automatically (wood, resin, greydwarf eyes, guck, coal, and modded fires).
+- **Reports what your lights cost.** For each fuel type it shows the fuel needed per hour to keep every fire it looks after running, and how many fires that covers. Each fire adds its own piece's burn rate, so a standing torch and a wall sconce both count towards resin at their own pace. Per-piece rates are listed in the log at world load.
 - **Never** touches production stations: furnaces, kilns, blast furnaces, eitr refineries, spinning wheels, windmills, cooking stations, etc.
 - Respects private chests.
-- Modded players: **E** rests/wakes it, **Shift+E** renames it (the dialog tamed animals use), and **holding E** dismisses it, returning its build cost and carried fuel (owner or admin). Hovering shows its status and what it carries.
+- Modded players: **E** rests/wakes it, **Shift+E** renames it (the dialog tamed animals use), and **holding E** dismisses it, returning its build cost and carried fuel (owner or admin). Hovering shows its status, what it carries and what each fuel type costs per hour.
 - Silent for **everyone**, mod or not: the default body has no sounds of its own. Bodies that do make noise can be held asleep to silence them (`SilenceIdleSounds`), at the cost of their name plate; the log lists silent and animated options each time a world loads.
 - Golems can't be hurt, and players' tames and turrets leave them alone.
 
@@ -44,6 +45,7 @@ A modded player on a server without the mod simply doesn't get the hammer piece.
 | Behaviour | `RefuelBelowPercent` | 0.5 | Refuel once a fire is this empty |
 | Behaviour | `CarryLimit` | 0 | Max per fuel type (0 = one stack) |
 | Behaviour | `MoveSpeed` | 3 | Travel speed |
+| Behaviour | `ReturnHomeDelay` | 5 | Seconds idle before heading back to its rest spot |
 | Behaviour | `HoverHeight` | 0 | Float height; raise it for a flying body |
 | Behaviour | `MaxGolemsPerPlayer` | 3 | 0 = unlimited |
 | Fuel | `FuelItems` | Auto | `Auto` or a list like `Wood,Resin,Guck` |

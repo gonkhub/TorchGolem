@@ -9,7 +9,11 @@ namespace TorchGolemMod
     {
         public string PrefabName;
         public float MaxFuel;
+        public float SecPerFuel;
         public string FuelItem;
+
+        /// <summary>Fuel items this fire burns in an hour while lit.</summary>
+        public float FuelPerHour => SecPerFuel > 0f ? 3600f / SecPerFuel : 0f;
     }
 
     internal sealed class ChestInfo
@@ -103,7 +107,13 @@ namespace TorchGolemMod
                         continue;
 
                     s_fuel.Add(fuel);
-                    s_fires[prefab.name.GetStableHashCode()] = new FireInfo { PrefabName = prefab.name, MaxFuel = fire.m_maxFuel, FuelItem = fuel };
+                    s_fires[prefab.name.GetStableHashCode()] = new FireInfo
+                    {
+                        PrefabName = prefab.name,
+                        MaxFuel = fire.m_maxFuel,
+                        SecPerFuel = fire.m_secPerFuel,
+                        FuelItem = fuel,
+                    };
                 }
                 else if (prefab.TryGetComponent(out Container chest) && prefab.GetComponent<Incinerator>() == null)
                 {
@@ -117,7 +127,7 @@ namespace TorchGolemMod
                 }
             }
 
-            Plugin.Log.LogInfo($"Refuelable pieces: {string.Join(", ", s_fires.Values.Select(f => $"{f.PrefabName} ({f.FuelItem})"))}");
+            Plugin.Log.LogInfo($"Refuelable pieces: {string.Join(", ", s_fires.Values.Select(f => $"{f.PrefabName} ({f.FuelItem}, {f.FuelPerHour:0.##}/h)"))}");
             Plugin.Log.LogInfo($"Torch Golem fuel types: {string.Join(", ", s_fuel)}");
         }
 

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
@@ -182,16 +183,32 @@ namespace TorchGolemMod
             var sb = new StringBuilder();
             sb.Append(__instance.GetHoverName());
             sb.Append(GolemData.IsResting(zdo) ? " <color=#9aa0a6>(resting)</color>" : " <color=orange>(working)</color>");
-            foreach (var item in GolemData.GetCarriedItems(zdo))
+
+            // Everything it carries, plus every fuel type the fires in range burn even if it holds none.
+            var fuels = GolemData.GetCarriedItems(zdo);
+            fuels.UnionWith(GolemData.GetBurningItems(zdo));
+            foreach (var item in fuels.OrderByDescending(f => GolemData.GetDemand(zdo, f).PerHour).ThenBy(f => f))
             {
                 var drop = GolemBrain.FindItemDrop(item);
                 sb.Append('\n').Append(drop != null ? drop.m_itemData.m_shared.m_name : item).Append(": ").Append(GolemData.GetCarry(zdo, item));
+
+                // What the base's lights cost per hour, whether or not this golem is the one feeding them.
+                var demand = GolemData.GetDemand(zdo, item);
+                if (demand.PerHour > 0f)
+                {
+                    sb.Append(" <color=#9aa0a6>(-").Append(FormatRate(demand.PerHour)).Append("/h, ")
+                      .Append(demand.Fires).Append(demand.Fires == 1 ? " fire" : " fires").Append(")</color>");
+                }
             }
             sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] ").Append(GolemData.IsResting(zdo) ? "Wake up" : "Rest");
             sb.Append("\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] $hud_rename");
             sb.Append("\n[<color=yellow><b>$KEY_Use</b></color>] Hold: dismiss (returns build cost and fuel)");
             __result = Localization.instance.Localize(sb.ToString());
         }
+
+        /// <summary>A brazier gets through several items an hour, a sconce a fraction of one; both should read well.</summary>
+        static string FormatRate(float perHour) =>
+            perHour.ToString(perHour < 1f ? "0.##" : perHour < 10f ? "0.#" : "0");
     }
 
     /// <summary>

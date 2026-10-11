@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
@@ -32,6 +32,7 @@ namespace TorchGolemMod
         internal static ConfigEntry<float> ScanInterval;
         internal static ConfigEntry<float> InteractRange;
         internal static ConfigEntry<int> MaxGolemsPerPlayer;
+        internal static ConfigEntry<float> ReturnHomeDelay;
 
         // Server: fuel
         internal static ConfigEntry<string> FuelItems;
@@ -68,6 +69,7 @@ namespace TorchGolemMod
             InteractRange = Config.Bind("Behaviour", "InteractRange", 1.5f, "How far from a fire or chest the golem hovers while using it.");
             HoverHeight = Config.Bind("Behaviour", "HoverHeight", 0f, "How high above its build spot, fires and chests the golem floats. 0 suits a walker like Wolf_spiritcaller; raise it to about 1.2 for a flier like Ghost_sleeping.");
             MaxGolemsPerPlayer = Config.Bind("Behaviour", "MaxGolemsPerPlayer", 3, "How many golems one player may own. 0 = unlimited.");
+            ReturnHomeDelay = Config.Bind("Behaviour", "ReturnHomeDelay", 5f, "Seconds without any work before the golem drifts back to its rest spot; until then it waits where it is. After a job it rescans the area immediately and moves straight to the next one instead. 0 = set off for home the moment it runs out of work.");
 
             FuelItems = Config.Bind("Fuel", "FuelItems", "Auto", "Fuel golems may take from chests. 'Auto' = every fuel used by a buildable torch/fire/brazier (listed in the log at world load). Otherwise a comma-separated list of item prefab names.");
             ExcludedFuel = Config.Bind("Fuel", "ExcludedFuel", "", "Item prefab names never used as fuel, even in Auto mode, e.g. Coal.");

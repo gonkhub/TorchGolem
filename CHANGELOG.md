@@ -1,4 +1,10 @@
-# Changelog
+﻿# Changelog
+
+## Unreleased
+- Hovering a golem now shows what each fuel type costs per hour: the fuel needed to keep every fire it looks after running, and how many fires that covers. Each fire contributes its own piece's burn rate (`3600 / m_secPerFuel`), so pieces that share a fuel type but burn at different speeds are all counted. Fires that are switched off or sitting empty still count, since the figure is what running the lot takes.
+- The log's refuelable-piece list now includes each piece's hourly burn rate.
+- Golems no longer set off for their rest spot the instant a job ends. They hold position, rescan immediately, and only head home after `ReturnHomeDelay` seconds (default 5) with nothing to do. Walking away and turning back was paying for every trip twice, which made reaching a nearby chest slow and pathing between torches erratic.
+- A golem now waits by a fire until it is seen to take the fuel before doing anything else. Carried fuel isn't spent until then, so starting another job in the meantime could promise the same items twice and hand out more fuel than the golem was holding.
 
 ## 2.1.3
 - Ambient birds (e.g. Seagull) used as a body now show their flying model instead of the landed one. They stay audible to players without the mod: a bird's call is played by each game on its own timer with no way for the server to gate it.

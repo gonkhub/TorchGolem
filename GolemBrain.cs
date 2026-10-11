@@ -52,6 +52,7 @@ namespace TorchGolemMod
         static readonly List<ZDO> s_nearby = new List<ZDO>();
         static readonly List<FireTarget> s_fires = new List<FireTarget>();
         static readonly List<ChestTarget> s_chests = new List<ChestTarget>();
+        static readonly Dictionary<string, FuelDemand> s_demand = new Dictionary<string, FuelDemand>(System.StringComparer.OrdinalIgnoreCase);
 
         public readonly ZDOID Id;
         ZDO m_zdo;
@@ -78,6 +79,7 @@ namespace TorchGolemMod
         float m_taskTimer;
 
         float m_scanTimer;
+        float m_idleFor;
         PendingRefuel m_pendingRefuel;
         ChestOp m_chestOp;
         readonly Dictionary<ZDOID, float> m_cooldownUntil = new Dictionary<ZDOID, float>();
@@ -122,18 +124,44 @@ namespace TorchGolemMod
             else if (GolemData.IsResting(m_zdo))
             {
                 ClearTask();
-                FlyTowards(HomePoint, dt);
-            }
-            else if (m_task == Task.Idle)
-            {
+                // No work while resting, but keep looking around: what the base's lights cost is worth
+                // reporting whether or not this golem is the one feeding them.
                 m_scanTimer -= dt;
                 if (m_scanTimer <= 0f)
                 {
                     m_scanTimer = Plugin.ScanInterval.Value;
-                    ChooseTask();
+                    Gather();
                 }
+                FlyTowards(HomePoint, dt);
+            }
+            else if (m_task == Task.Idle)
+            {
+                // A refuel isn't done until the fire is seen to take it. Until then the fuel is still on the
+                // golem's books, so it takes nothing else on: another job would be planned against items it
+                // is about to hand over. Waiting for a fire isn't idling either, so it doesn't count towards
+                // heading home.
+                if (m_pendingRefuel == null)
+                {
+                    m_scanTimer -= dt;
+                    if (m_scanTimer <= 0f)
+                    {
+                        m_scanTimer = Plugin.ScanInterval.Value;
+                        ChooseTask();
+                    }
+                    m_idleFor += dt;
+                }
+
+                // Nothing to do: wait where it is before heading home. The next job is usually a step away
+                // -- the next torch along the same wall, or the chest it just came from -- and setting off
+                // for home only to turn around pays for that trip twice, which is how a golem ends up
+                // taking an age to reach a chest it was standing next to.
                 if (m_task == Task.Idle)
-                    FlyTowards(HomePoint, dt);
+                {
+                    if (m_pendingRefuel == null && m_idleFor >= Plugin.ReturnHomeDelay.Value)
+                        FlyTowards(HomePoint, dt);
+                    else
+                        Hover();
+                }
             }
             else
             {
@@ -200,6 +228,7 @@ namespace TorchGolemMod
             s_nearby.Clear();
             s_fires.Clear();
             s_chests.Clear();
+            s_demand.Clear();
             ZDOMan.instance.FindSectorObjects(ZoneSystem.GetZone(Home), new SimulationDistance(1, 0, true), s_nearby);
 
             float now = Time.time;
@@ -216,6 +245,18 @@ namespace TorchGolemMod
                 int prefab = zdo.GetPrefab();
                 if (FuelRegistry.TryGetFire(prefab, out var fire))
                 {
+                    // What it costs to keep the base's lights running, so every fire in range counts: each
+                    // one adds its own prefab's burn rate to its fuel type, and several prefabs share a fuel
+                    // type at different rates. Fires that are switched off, empty or being waited on count
+                    // too; the figure is what running all of them takes, not what they happen to burn now.
+                    if (fire.FuelPerHour > 0f)
+                    {
+                        s_demand.TryGetValue(fire.FuelItem, out var demand);
+                        demand.PerHour += fire.FuelPerHour;
+                        demand.Fires++;
+                        s_demand[fire.FuelItem] = demand;
+                    }
+
                     if (m_cooldownUntil.TryGetValue(zdo.m_uid, out float until) && now < until)
                         continue;
                     if (m_pendingRefuel != null && m_pendingRefuel.Fire == zdo.m_uid)
@@ -229,6 +270,8 @@ namespace TorchGolemMod
                     s_chests.Add(new ChestTarget { Zdo = zdo, Info = chest });
                 }
             }
+
+            GolemData.SetDemand(m_zdo, s_demand);
         }
 
         static bool NeedsFuel(FireTarget fire)
@@ -317,7 +360,7 @@ namespace TorchGolemMod
             var task = m_task;
             string item = m_item;
             ClearTask();
-            m_scanTimer = 0.5f;
+            m_scanTimer = 0f;
             if (target == null)
                 return;
 
@@ -461,6 +504,7 @@ namespace TorchGolemMod
             m_task = Task.Idle;
             m_target = ZDOID.None;
             m_item = null;
+            m_idleFor = 0f;
         }
 
         // ------------------------------------------------------------------ movement
